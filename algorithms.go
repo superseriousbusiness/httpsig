@@ -1,3 +1,39 @@
+// httpsig
+// Copyright (C) GoToSocial Authors admin@gotosocial.org
+// Copyright (C) go-fed
+// SPDX-License-Identifier: BSD-3-Clause
+//
+// BSD 3-Clause License
+//
+// Copyright (c) 2018, go-fed
+// Copyright (c) 2024, GoToSocial Authors
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+// * Redistributions of source code must retain the above copyright notice, this
+// list of conditions and the following disclaimer.
+//
+// * Redistributions in binary form must reproduce the above copyright notice,
+// this list of conditions and the following disclaimer in the documentation
+// and/or other materials provided with the distribution.
+//
+// * Neither the name of the copyright holder nor the names of its
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 package httpsig
 
 import (
@@ -5,10 +41,9 @@ import (
 	"crypto/ecdsa"
 	"crypto/hmac"
 	"crypto/rsa"
-	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
-	"crypto/subtle" // Use should trigger great care
+	"crypto/subtle"
 	"encoding/asn1"
 	"errors"
 	"fmt"
@@ -20,11 +55,11 @@ import (
 	"golang.org/x/crypto/blake2b"
 	"golang.org/x/crypto/blake2s"
 	"golang.org/x/crypto/ed25519"
-	"golang.org/x/crypto/ripemd160"
 	"golang.org/x/crypto/sha3"
 	"golang.org/x/crypto/ssh"
 )
 
+//nolint:revive // Underscores aid legibility
 const (
 	hmacPrefix        = "hmac"
 	rsaPrefix         = "rsa"
@@ -68,26 +103,23 @@ var hashToDef = map[crypto.Hash]struct {
 	// http://www.iana.org/assignments/signature-algorithms
 	//
 	// Note that the forbidden hashes have an invalid 'new' function.
-	crypto.MD4: {md4String, func(key []byte) (hash.Hash, error) { return nil, nil }},
-	crypto.MD5: {md5String, func(key []byte) (hash.Hash, error) { return nil, nil }},
-	// Temporarily enable SHA1 because of issue https://github.com/golang/go/issues/37278
-	crypto.SHA1:        {sha1String, func(key []byte) (hash.Hash, error) { return sha1.New(), nil }},
+	crypto.MD4:         {md4String, func(key []byte) (hash.Hash, error) { return nil, nil }},
+	crypto.MD5:         {md5String, func(key []byte) (hash.Hash, error) { return nil, nil }},
 	crypto.SHA224:      {sha224String, func(key []byte) (hash.Hash, error) { return sha256.New224(), nil }},
 	crypto.SHA256:      {sha256String, func(key []byte) (hash.Hash, error) { return sha256.New(), nil }},
 	crypto.SHA384:      {sha384String, func(key []byte) (hash.Hash, error) { return sha512.New384(), nil }},
 	crypto.SHA512:      {sha512String, func(key []byte) (hash.Hash, error) { return sha512.New(), nil }},
 	crypto.MD5SHA1:     {md5sha1String, func(key []byte) (hash.Hash, error) { return nil, nil }},
-	crypto.RIPEMD160:   {ripemd160String, func(key []byte) (hash.Hash, error) { return ripemd160.New(), nil }},
 	crypto.SHA3_224:    {sha3_224String, func(key []byte) (hash.Hash, error) { return sha3.New224(), nil }},
 	crypto.SHA3_256:    {sha3_256String, func(key []byte) (hash.Hash, error) { return sha3.New256(), nil }},
 	crypto.SHA3_384:    {sha3_384String, func(key []byte) (hash.Hash, error) { return sha3.New384(), nil }},
 	crypto.SHA3_512:    {sha3_512String, func(key []byte) (hash.Hash, error) { return sha3.New512(), nil }},
 	crypto.SHA512_224:  {sha512_224String, func(key []byte) (hash.Hash, error) { return sha512.New512_224(), nil }},
 	crypto.SHA512_256:  {sha512_256String, func(key []byte) (hash.Hash, error) { return sha512.New512_256(), nil }},
-	crypto.BLAKE2s_256: {blake2s_256String, func(key []byte) (hash.Hash, error) { return blake2s.New256(key) }},
-	crypto.BLAKE2b_256: {blake2b_256String, func(key []byte) (hash.Hash, error) { return blake2b.New256(key) }},
-	crypto.BLAKE2b_384: {blake2b_384String, func(key []byte) (hash.Hash, error) { return blake2b.New384(key) }},
-	crypto.BLAKE2b_512: {blake2b_512String, func(key []byte) (hash.Hash, error) { return blake2b.New512(key) }},
+	crypto.BLAKE2s_256: {blake2s_256String, blake2s.New256},
+	crypto.BLAKE2b_256: {blake2b_256String, blake2b.New256},
+	crypto.BLAKE2b_384: {blake2b_384String, blake2b.New384},
+	crypto.BLAKE2b_512: {blake2b_512String, blake2b.New512},
 }
 
 var stringToHash map[string]crypto.Hash
@@ -148,6 +180,9 @@ type hmacAlgorithm struct {
 
 func (h *hmacAlgorithm) Sign(sig, key []byte) ([]byte, error) {
 	hs, err := h.fn(key)
+	if err != nil {
+		return nil, err
+	}
 	if err = setSig(hs, sig); err != nil {
 		return nil, err
 	}
@@ -265,7 +300,7 @@ func (r *ed25519Algorithm) Verify(pub crypto.PublicKey, toHash, signature []byte
 }
 
 func (r *ed25519Algorithm) String() string {
-	return fmt.Sprintf("%s", ed25519Prefix)
+	return ed25519Prefix
 }
 
 var _ signer = &ecdsaAlgorithm{}
@@ -329,9 +364,8 @@ func (r *ecdsaAlgorithm) Verify(pub crypto.PublicKey, toHash, signature []byte) 
 
 	if ecdsa.Verify(ecdsaK, r.Sum(nil), sig.R, sig.S) {
 		return nil
-	} else {
-		return errors.New("Invalid signature")
 	}
+	return errors.New("Invalid signature")
 }
 
 func (r *ecdsaAlgorithm) String() string {
@@ -371,7 +405,7 @@ func (r *blakeMacAlgorithm) Equal(sig, actualMAC, key []byte) (bool, error) {
 }
 
 func (r *blakeMacAlgorithm) String() string {
-	return fmt.Sprintf("%s", hashToDef[r.kind].name)
+	return hashToDef[r.kind].name
 }
 
 func setSig(a hash.Hash, b []byte) error {
@@ -386,9 +420,9 @@ func setSig(a hash.Hash, b []byte) error {
 	return nil
 }
 
-// IsSupportedHttpSigAlgorithm returns true if the string is supported by this
+// IsSupportedAlgorithm returns true if the string is supported by this
 // library, is not a hash known to be weak, and is supported by the hardware.
-func IsSupportedHttpSigAlgorithm(algo string) bool {
+func IsSupportedAlgorithm(algo string) bool {
 	a, err := isAvailable(algo)
 	return a && err == nil
 }
@@ -460,16 +494,17 @@ func signerFromString(s string) (signer, error) {
 	s = strings.ToLower(s)
 	isEcdsa := false
 	isEd25519 := false
-	var algo string = ""
-	if strings.HasPrefix(s, ecdsaPrefix) {
+	var algo string
+	switch {
+	case strings.HasPrefix(s, ecdsaPrefix):
 		algo = strings.TrimPrefix(s, ecdsaPrefix+"-")
 		isEcdsa = true
-	} else if strings.HasPrefix(s, rsaPrefix) {
+	case strings.HasPrefix(s, rsaPrefix):
 		algo = strings.TrimPrefix(s, rsaPrefix+"-")
-	} else if strings.HasPrefix(s, ed25519Prefix) {
+	case strings.HasPrefix(s, ed25519Prefix):
 		isEd25519 = true
 		algo = "sha512"
-	} else {
+	default:
 		return nil, fmt.Errorf("no signer matching %q", s)
 	}
 	hash, cHash, err := newAlgorithm(algo, nil)
@@ -526,7 +561,6 @@ func macerFromString(s string) (macer, error) {
 			fn:   hashFn,
 			kind: cHash,
 		}, nil
-	} else {
-		return nil, fmt.Errorf("no MACer matching %q", s)
 	}
+	return nil, fmt.Errorf("no MACer matching %q", s)
 }

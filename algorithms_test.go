@@ -25,6 +25,22 @@ func readFullFromCrypto(b []byte) error {
 }
 
 func TestIsAvailable(t *testing.T) {
+	//nolint:revive // Underscores aid legibility
+	const (
+		// Just because you can glue things together, doesn't mean they will
+		// work. The following options are not supported.
+		rsa_SHA3_224    Algorithm = rsaPrefix + "-" + sha3_224String
+		rsa_SHA3_256    Algorithm = rsaPrefix + "-" + sha3_256String
+		rsa_SHA3_384    Algorithm = rsaPrefix + "-" + sha3_384String
+		rsa_SHA3_512    Algorithm = rsaPrefix + "-" + sha3_512String
+		rsa_SHA512_224  Algorithm = rsaPrefix + "-" + sha512_224String
+		rsa_SHA512_256  Algorithm = rsaPrefix + "-" + sha512_256String
+		rsa_BLAKE2S_256 Algorithm = rsaPrefix + "-" + blake2s_256String
+		rsa_BLAKE2B_256 Algorithm = rsaPrefix + "-" + blake2b_256String
+		rsa_BLAKE2B_384 Algorithm = rsaPrefix + "-" + blake2b_384String
+		rsa_BLAKE2B_512 Algorithm = rsaPrefix + "-" + blake2b_512String
+	)
+
 	tests := []struct {
 		name        string
 		algo        string

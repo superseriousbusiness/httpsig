@@ -1,3 +1,39 @@
+// httpsig
+// Copyright (C) GoToSocial Authors admin@gotosocial.org
+// Copyright (C) go-fed
+// SPDX-License-Identifier: BSD-3-Clause
+//
+// BSD 3-Clause License
+//
+// Copyright (c) 2018, go-fed
+// Copyright (c) 2024, GoToSocial Authors
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+// * Redistributions of source code must retain the above copyright notice, this
+// list of conditions and the following disclaimer.
+//
+// * Redistributions in binary form must reproduce the above copyright notice,
+// this list of conditions and the following disclaimer in the documentation
+// and/or other materials provided with the distribution.
+//
+// * Neither the name of the copyright holder nor the names of its
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 package httpsig
 
 import (
@@ -15,7 +51,7 @@ var _ VerifierWithOptions = &verifier{}
 
 type verifier struct {
 	header      http.Header
-	kId         string
+	kID         string
 	signature   string
 	created     int64
 	expires     int64
@@ -28,16 +64,16 @@ func newVerifier(h http.Header, sigStringFn func(http.Header, []string, int64, i
 	if err != nil {
 		return nil, err
 	}
-	kId, sig, headers, created, expires, err := getSignatureComponents(scheme, s)
+	kID, sig, headers, created, expires, err := getSignatureComponents(scheme, s)
 	if created != 0 {
-		//check if created is not in the future, we assume a maximum clock offset of 10 seconds
+		// check if created is not in the future, we assume a maximum clock offset of 10 seconds
 		now := time.Now().Unix()
 		if created-now > 10 {
 			return nil, errors.New("created is in the future")
 		}
 	}
 	if expires != 0 {
-		//check if expires is in the past, we assume a maximum clock offset of 10 seconds
+		// check if expires is in the past, we assume a maximum clock offset of 10 seconds
 		now := time.Now().Unix()
 		if now-expires > 10 {
 			return nil, errors.New("signature expired")
@@ -48,7 +84,7 @@ func newVerifier(h http.Header, sigStringFn func(http.Header, []string, int64, i
 	}
 	return &verifier{
 		header:      h,
-		kId:         kId,
+		kID:         kID,
 		signature:   sig,
 		created:     created,
 		expires:     expires,
@@ -57,8 +93,8 @@ func newVerifier(h http.Header, sigStringFn func(http.Header, []string, int64, i
 	}, nil
 }
 
-func (v *verifier) KeyId() string {
-	return v.kId
+func (v *verifier) KeyID() string {
+	return v.kID
 }
 
 func (v *verifier) Verify(pKey crypto.PublicKey, algo Algorithm) error {
@@ -117,31 +153,32 @@ func (v *verifier) asymmVerify(s signer, pKey crypto.PublicKey, opts SignatureOp
 
 func getSignatureScheme(h http.Header) (scheme SignatureScheme, val string, err error) {
 	s := h.Get(string(Signature))
-	sigHasAll := strings.Contains(s, keyIdParameter) ||
+	sigHasAll := strings.Contains(s, keyIDParameter) ||
 		strings.Contains(s, headersParameter) ||
 		strings.Contains(s, signatureParameter)
 	a := h.Get(string(Authorization))
-	authHasAll := strings.Contains(a, keyIdParameter) ||
+	authHasAll := strings.Contains(a, keyIDParameter) ||
 		strings.Contains(a, headersParameter) ||
 		strings.Contains(a, signatureParameter)
-	if sigHasAll && authHasAll {
+	switch {
+	case sigHasAll && authHasAll:
 		err = fmt.Errorf("both %q and %q have signature parameters", Signature, Authorization)
 		return
-	} else if !sigHasAll && !authHasAll {
+	case !sigHasAll && !authHasAll:
 		err = fmt.Errorf("neither %q nor %q have signature parameters", Signature, Authorization)
 		return
-	} else if sigHasAll {
+	case sigHasAll:
 		val = s
 		scheme = Signature
 		return
-	} else { // authHasAll
+	default:
 		val = a
 		scheme = Authorization
 		return
 	}
 }
 
-func getSignatureComponents(scheme SignatureScheme, s string) (kId, sig string, headers []string, created int64, expires int64, err error) {
+func getSignatureComponents(scheme SignatureScheme, s string) (kID, sig string, headers []string, created int64, expires int64, err error) {
 	if as := scheme.authScheme(); len(as) > 0 {
 		s = strings.TrimPrefix(s, as+prefixSeparater)
 	}
@@ -155,8 +192,8 @@ func getSignatureComponents(scheme SignatureScheme, s string) (kId, sig string, 
 		k := kv[0]
 		v := strings.Trim(kv[1], parameterValueDelimiter)
 		switch k {
-		case keyIdParameter:
-			kId = v
+		case keyIDParameter:
+			kID = v
 		case createdKey:
 			created, err = strconv.ParseInt(v, 10, 64)
 			if err != nil {
@@ -177,11 +214,12 @@ func getSignatureComponents(scheme SignatureScheme, s string) (kId, sig string, 
 			// Ignore unrecognized parameters
 		}
 	}
-	if len(kId) == 0 {
-		err = fmt.Errorf("missing %q parameter in http signature", keyIdParameter)
-	} else if len(sig) == 0 {
+	switch {
+	case len(kID) == 0:
+		err = fmt.Errorf("missing %q parameter in http signature", keyIDParameter)
+	case len(sig) == 0:
 		err = fmt.Errorf("missing %q parameter in http signature", signatureParameter)
-	} else if len(headers) == 0 { // Optional
+	case len(headers) == 0:
 		headers = defaultHeaders
 	}
 	return
