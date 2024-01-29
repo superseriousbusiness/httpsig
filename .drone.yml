@@ -1,0 +1,68 @@
+---
+### Drone configuration file for httpsig.
+### Connects to https://drone.superseriousbusiness.org to perform testing & linting.
+###
+### For documentation on drone, see: https://docs.drone.io/
+### For documentation on drone docker pipelines in particular: https://docs.drone.io/pipeline/docker/overview/
+kind: pipeline
+type: docker
+name: default
+
+steps:
+  # We use golangci-lint for linting.
+  # See: https://golangci-lint.run/
+  - name: lint
+    image: golangci/golangci-lint:v1.55.2
+    volumes:
+      - name: go-build-cache
+        path: /root/.cache/go-build
+      - name: golangci-lint-cache
+        path: /root/.cache/golangci-lint
+      - name: go-src
+        path: /go
+    commands:
+      - golangci-lint run
+    when:
+      event:
+        include:
+          - pull_request
+
+  - name: test
+    image: golang:1.21-alpine
+    volumes:
+      - name: go-build-cache
+        path: /root/.cache/go-build
+      - name: go-src
+        path: /go
+    commands:
+      - go test ./...
+    when:
+      event:
+        include:
+          - pull_request
+
+# We can speed up builds significantly by caching build artifacts between runs.
+# See: https://docs.drone.io/pipeline/docker/syntax/volumes/host/
+volumes:
+  - name: go-build-cache
+    host:
+      path: /drone/httpsig/go-build
+  - name: golangci-lint-cache
+    host:
+      path: /drone/httpsig/golangci-lint
+  - name: go-src
+    host:
+      path: /drone/httpsig/go
+  - name: docker
+    host:
+      path: /var/run/docker.sock
+
+trigger:
+  repo:
+    - superseriousbusiness/gotosocial
+
+---
+kind: signature
+hmac: 0000000000000000000000000000000000000000000000000000000000000000
+
+...
