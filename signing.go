@@ -1,3 +1,39 @@
+// httpsig
+// Copyright (C) GoToSocial Authors admin@gotosocial.org
+// Copyright (C) go-fed
+// SPDX-License-Identifier: BSD-3-Clause
+//
+// BSD 3-Clause License
+//
+// Copyright (c) 2018, go-fed
+// Copyright (c) 2024, GoToSocial Authors
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+// * Redistributions of source code must retain the above copyright notice, this
+// list of conditions and the following disclaimer.
+//
+// * Redistributions in binary form must reproduce the above copyright notice,
+// this list of conditions and the following disclaimer in the documentation
+// and/or other materials provided with the distribution.
+//
+// * Neither the name of the copyright holder nor the names of its
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 package httpsig
 
 import (
@@ -14,7 +50,7 @@ import (
 
 const (
 	// Signature Parameters
-	keyIdParameter            = "keyId"
+	keyIDParameter            = "keyId"
 	algorithmParameter        = "algorithm"
 	headersParameter          = "headers"
 	signatureParameter        = "signature"
@@ -43,7 +79,6 @@ var _ SignerWithOptions = &macSigner{}
 
 type macSigner struct {
 	m            macer
-	makeDigest   bool
 	dAlgo        DigestAlgorithm
 	headers      []string
 	targetHeader SignatureScheme
@@ -52,11 +87,11 @@ type macSigner struct {
 	expires      int64
 }
 
-func (m *macSigner) SignRequest(pKey crypto.PrivateKey, pubKeyId string, r *http.Request, body []byte) error {
-	return m.SignRequestWithOptions(pKey, pubKeyId, r, body, SignatureOption{})
+func (m *macSigner) SignRequest(pKey crypto.PrivateKey, pubKeyID string, r *http.Request, body []byte) error {
+	return m.SignRequestWithOptions(pKey, pubKeyID, r, body, SignatureOption{})
 }
 
-func (m *macSigner) SignRequestWithOptions(pKey crypto.PrivateKey, pubKeyId string, r *http.Request, body []byte, opts SignatureOption) error {
+func (m *macSigner) SignRequestWithOptions(pKey crypto.PrivateKey, pubKeyID string, r *http.Request, body []byte, opts SignatureOption) error {
 	if body != nil {
 		err := addDigest(r, m.dAlgo, body)
 		if err != nil {
@@ -71,15 +106,15 @@ func (m *macSigner) SignRequestWithOptions(pKey crypto.PrivateKey, pubKeyId stri
 	if err != nil {
 		return err
 	}
-	setSignatureHeader(r.Header, string(m.targetHeader), m.prefix, pubKeyId, m.m.String(), enc, m.headers, m.created, m.expires)
+	setSignatureHeader(r.Header, string(m.targetHeader), m.prefix, pubKeyID, m.m.String(), enc, m.headers, m.created, m.expires)
 	return nil
 }
 
-func (m *macSigner) SignResponse(pKey crypto.PrivateKey, pubKeyId string, r http.ResponseWriter, body []byte) error {
-	return m.SignResponseWithOptions(pKey, pubKeyId, r, body, SignatureOption{})
+func (m *macSigner) SignResponse(pKey crypto.PrivateKey, pubKeyID string, r http.ResponseWriter, body []byte) error {
+	return m.SignResponseWithOptions(pKey, pubKeyID, r, body, SignatureOption{})
 }
 
-func (m *macSigner) SignResponseWithOptions(pKey crypto.PrivateKey, pubKeyId string, r http.ResponseWriter, body []byte, _ SignatureOption) error {
+func (m *macSigner) SignResponseWithOptions(pKey crypto.PrivateKey, pubKeyID string, r http.ResponseWriter, body []byte, _ SignatureOption) error {
 	if body != nil {
 		err := addDigestResponse(r, m.dAlgo, body)
 		if err != nil {
@@ -94,7 +129,7 @@ func (m *macSigner) SignResponseWithOptions(pKey crypto.PrivateKey, pubKeyId str
 	if err != nil {
 		return err
 	}
-	setSignatureHeader(r.Header(), string(m.targetHeader), m.prefix, pubKeyId, m.m.String(), enc, m.headers, m.created, m.expires)
+	setSignatureHeader(r.Header(), string(m.targetHeader), m.prefix, pubKeyID, m.m.String(), enc, m.headers, m.created, m.expires)
 	return nil
 }
 
@@ -123,7 +158,6 @@ var _ SignerWithOptions = &asymmSigner{}
 
 type asymmSigner struct {
 	s            signer
-	makeDigest   bool
 	dAlgo        DigestAlgorithm
 	headers      []string
 	targetHeader SignatureScheme
@@ -132,11 +166,11 @@ type asymmSigner struct {
 	expires      int64
 }
 
-func (a *asymmSigner) SignRequest(pKey crypto.PrivateKey, pubKeyId string, r *http.Request, body []byte) error {
-	return a.SignRequestWithOptions(pKey, pubKeyId, r, body, SignatureOption{})
+func (a *asymmSigner) SignRequest(pKey crypto.PrivateKey, pubKeyID string, r *http.Request, body []byte) error {
+	return a.SignRequestWithOptions(pKey, pubKeyID, r, body, SignatureOption{})
 }
 
-func (a *asymmSigner) SignRequestWithOptions(pKey crypto.PrivateKey, pubKeyId string, r *http.Request, body []byte, opts SignatureOption) error {
+func (a *asymmSigner) SignRequestWithOptions(pKey crypto.PrivateKey, pubKeyID string, r *http.Request, body []byte, opts SignatureOption) error {
 	if body != nil {
 		err := addDigest(r, a.dAlgo, body)
 		if err != nil {
@@ -151,15 +185,15 @@ func (a *asymmSigner) SignRequestWithOptions(pKey crypto.PrivateKey, pubKeyId st
 	if err != nil {
 		return err
 	}
-	setSignatureHeader(r.Header, string(a.targetHeader), a.prefix, pubKeyId, a.s.String(), enc, a.headers, a.created, a.expires)
+	setSignatureHeader(r.Header, string(a.targetHeader), a.prefix, pubKeyID, a.s.String(), enc, a.headers, a.created, a.expires)
 	return nil
 }
 
-func (a *asymmSigner) SignResponse(pKey crypto.PrivateKey, pubKeyId string, r http.ResponseWriter, body []byte) error {
-	return a.SignResponseWithOptions(pKey, pubKeyId, r, body, SignatureOption{})
+func (a *asymmSigner) SignResponse(pKey crypto.PrivateKey, pubKeyID string, r http.ResponseWriter, body []byte) error {
+	return a.SignResponseWithOptions(pKey, pubKeyID, r, body, SignatureOption{})
 }
 
-func (a *asymmSigner) SignResponseWithOptions(pKey crypto.PrivateKey, pubKeyId string, r http.ResponseWriter, body []byte, _ SignatureOption) error {
+func (a *asymmSigner) SignResponseWithOptions(pKey crypto.PrivateKey, pubKeyID string, r http.ResponseWriter, body []byte, _ SignatureOption) error {
 	if body != nil {
 		err := addDigestResponse(r, a.dAlgo, body)
 		if err != nil {
@@ -174,7 +208,7 @@ func (a *asymmSigner) SignResponseWithOptions(pKey crypto.PrivateKey, pubKeyId s
 	if err != nil {
 		return err
 	}
-	setSignatureHeader(r.Header(), string(a.targetHeader), a.prefix, pubKeyId, a.s.String(), enc, a.headers, a.created, a.expires)
+	setSignatureHeader(r.Header(), string(a.targetHeader), a.prefix, pubKeyID, a.s.String(), enc, a.headers, a.created, a.expires)
 	return nil
 }
 
@@ -201,35 +235,35 @@ type asymmSSHSigner struct {
 	*asymmSigner
 }
 
-func (a *asymmSSHSigner) SignRequest(pubKeyId string, r *http.Request, body []byte) error {
-	return a.asymmSigner.SignRequest(nil, pubKeyId, r, body)
+func (a *asymmSSHSigner) SignRequest(pubKeyID string, r *http.Request, body []byte) error {
+	return a.asymmSigner.SignRequest(nil, pubKeyID, r, body)
 }
 
-func (a *asymmSSHSigner) SignResponse(pubKeyId string, r http.ResponseWriter, body []byte) error {
-	return a.asymmSigner.SignResponse(nil, pubKeyId, r, body)
+func (a *asymmSSHSigner) SignResponse(pubKeyID string, r http.ResponseWriter, body []byte) error {
+	return a.asymmSigner.SignResponse(nil, pubKeyID, r, body)
 }
 
-func setSignatureHeader(h http.Header, targetHeader, prefix, pubKeyId, algo, enc string, headers []string, created int64, expires int64) {
+func setSignatureHeader(h http.Header, targetHeader, prefix, pubKeyID, algo, enc string, headers []string, created int64, expires int64) {
 	if len(headers) == 0 {
 		headers = defaultHeaders
 	}
 	var b bytes.Buffer
-	// KeyId
+	// KeyID
 	b.WriteString(prefix)
 	if len(prefix) > 0 {
 		b.WriteString(prefixSeparater)
 	}
-	b.WriteString(keyIdParameter)
+	b.WriteString(keyIDParameter)
 	b.WriteString(parameterKVSeparater)
 	b.WriteString(parameterValueDelimiter)
-	b.WriteString(pubKeyId)
+	b.WriteString(pubKeyID)
 	b.WriteString(parameterValueDelimiter)
 	b.WriteString(parameterSeparater)
 	// Algorithm
 	b.WriteString(algorithmParameter)
 	b.WriteString(parameterKVSeparater)
 	b.WriteString(parameterValueDelimiter)
-	b.WriteString("hs2019") //real algorithm is hidden, see newest version of spec draft
+	b.WriteString("hs2019") // real algorithm is hidden, see newest version of spec draft
 	b.WriteString(parameterValueDelimiter)
 	b.WriteString(parameterSeparater)
 
@@ -245,7 +279,7 @@ func setSignatureHeader(h http.Header, targetHeader, prefix, pubKeyId, algo, enc
 	}
 
 	// Created
-	if hasCreated == true {
+	if hasCreated {
 		b.WriteString(createdKey)
 		b.WriteString(parameterKVSeparater)
 		b.WriteString(strconv.FormatInt(created, 10))
@@ -253,7 +287,7 @@ func setSignatureHeader(h http.Header, targetHeader, prefix, pubKeyId, algo, enc
 	}
 
 	// Expires
-	if hasExpires == true {
+	if hasExpires {
 		b.WriteString(expiresKey)
 		b.WriteString(parameterKVSeparater)
 		b.WriteString(strconv.FormatInt(expires, 10))
@@ -309,26 +343,27 @@ func signatureString(values http.Header, include []string, requestTargetFn func(
 	var b bytes.Buffer
 	for n, i := range include {
 		i := strings.ToLower(i)
-		if i == RequestTarget {
+		switch {
+		case i == RequestTarget:
 			err := requestTargetFn(&b)
 			if err != nil {
 				return "", err
 			}
-		} else if i == "("+expiresKey+")" {
+		case i == "("+expiresKey+")":
 			if expires == 0 {
 				return "", fmt.Errorf("missing expires value")
 			}
 			b.WriteString(i)
 			b.WriteString(headerFieldDelimiter)
 			b.WriteString(strconv.FormatInt(expires, 10))
-		} else if i == "("+createdKey+")" {
+		case i == "("+createdKey+")":
 			if created == 0 {
 				return "", fmt.Errorf("missing created value")
 			}
 			b.WriteString(i)
 			b.WriteString(headerFieldDelimiter)
 			b.WriteString(strconv.FormatInt(created, 10))
-		} else {
+		default:
 			hv, ok := values[textproto.CanonicalMIMEHeaderKey(i)]
 			if !ok {
 				return "", fmt.Errorf("missing header %q", i)

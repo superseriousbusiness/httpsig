@@ -1,0 +1,104 @@
+# Configuration file for golangci-lint linter.
+# This will be automatically picked up when golangci-lint is invoked.
+# For all config options, see https://golangci-lint.run/usage/configuration/#config-file
+#
+# For GoToSocial we mostly take the default linters, but we add a few to catch style issues as well.
+
+# options for analysis running
+run:
+  # include test files or not, default is true
+  tests: false
+  # timeout for analysis, e.g. 30s, 5m, default is 1m
+  timeout: 5m
+
+linters:
+  # enable some extra linters, see here for the list: https://golangci-lint.run/usage/linters/
+  enable:
+    - gocritic
+    - gofmt
+    - goheader
+    - gosec
+    - nilerr
+    - revive
+
+# https://golangci-lint.run/usage/linters/#linters-configuration
+linters-settings:
+  # https://golangci-lint.run/usage/linters/#goheader
+  goheader:
+    template: |-
+      httpsig
+      Copyright (C) GoToSocial Authors admin@gotosocial.org
+      Copyright (C) go-fed
+      SPDX-License-Identifier: BSD-3-Clause
+      
+      BSD 3-Clause License
+      
+      Copyright (c) 2018, go-fed
+      Copyright (c) 2024, GoToSocial Authors
+      All rights reserved.
+      
+      Redistribution and use in source and binary forms, with or without
+      modification, are permitted provided that the following conditions are met:
+
+      * Redistributions of source code must retain the above copyright notice, this
+      list of conditions and the following disclaimer.
+      
+      * Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
+      
+      * Neither the name of the copyright holder nor the names of its
+      contributors may be used to endorse or promote products derived from
+      this software without specific prior written permission.
+      
+      THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+      AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+      IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+      DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+      FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+      DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+      SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+      CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+      OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+      OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  # https://golangci-lint.run/usage/linters/#govet
+  govet:
+    disable:
+      - composites
+  # https://golangci-lint.run/usage/linters/#revive
+  revive:
+    rules:
+      # Enable most default rules.
+      # See: https://github.com/mgechev/revive/blob/master/defaults.toml
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-naming
+      - name: error-return
+      - name: error-strings
+      - name: exported
+      - name: if-return
+      - name: increment-decrement
+      - name: var-naming
+      - name: var-declaration
+      - name: package-comments
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: indent-error-flow
+      - name: errorf
+      - name: empty-block
+      - name: superfluous-else
+      - name: unreachable-code
+      # Disable below rules.
+      - name: redefines-builtin-id 
+        disabled: true # This one is just annoying.
+      - name: unused-parameter     
+        disabled: true # We often pass parameters to fulfil interfaces.
+  # https://golangci-lint.run/usage/linters/#staticcheck
+  staticcheck:
+    # Enable all checks, but disable SA1012: nil context passing.
+    # See: https://staticcheck.io/docs/configuration/options/#checks
+    checks: ["all", "-SA1012"]

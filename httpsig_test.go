@@ -315,7 +315,7 @@ func TestSignerRequest(t *testing.T) {
 		if len(vals) != 1 {
 			t.Fatalf("too many in header %s: %d", test.scheme, len(vals))
 		}
-		if p := toSignatureParameter(keyIdParameter, test.pubKeyId); !strings.Contains(vals[0], p) {
+		if p := toSignatureParameter(keyIDParameter, test.pubKeyId); !strings.Contains(vals[0], p) {
 			t.Fatalf("%s\ndoes not contain\n%s", vals[0], p)
 		} else if p := toSignatureParameter(algorithmParameter, string(test.expectedSignatureAlgorithm)); !strings.Contains(vals[0], p) {
 			t.Fatalf("%s\ndoes not contain\n%s", vals[0], p)
@@ -365,7 +365,7 @@ func TestSignerResponse(t *testing.T) {
 		if len(vals) != 1 {
 			t.Fatalf("too many in header %s: %d", test.scheme, len(vals))
 		}
-		if p := toSignatureParameter(keyIdParameter, test.pubKeyId); !strings.Contains(vals[0], p) {
+		if p := toSignatureParameter(keyIDParameter, test.pubKeyId); !strings.Contains(vals[0], p) {
 			t.Fatalf("%s\ndoes not contain\n%s", vals[0], p)
 		} else if p := toSignatureParameter(algorithmParameter, string(test.expectedSignatureAlgorithm)); !strings.Contains(vals[0], p) {
 			t.Fatalf("%s\ndoes not contain\n%s", vals[0], p)
@@ -509,8 +509,8 @@ func TestNewVerifier(t *testing.T) {
 			if err != nil {
 				t.Fatalf("%s", err)
 			}
-			if v.KeyId() != test.pubKeyId {
-				t.Fatalf("got %s, want %s", v.KeyId(), test.pubKeyId)
+			if v.KeyID() != test.pubKeyId {
+				t.Fatalf("got %s, want %s", v.KeyID(), test.pubKeyId)
 			}
 			err = v.Verify(test.pubKey, test.expectedAlgorithm)
 			if err != nil {
@@ -546,8 +546,8 @@ func TestNewResponseVerifier(t *testing.T) {
 			if err != nil {
 				t.Fatalf("%s", err)
 			}
-			if v.KeyId() != test.pubKeyId {
-				t.Fatalf("got %s, want %s", v.KeyId(), test.pubKeyId)
+			if v.KeyID() != test.pubKeyId {
+				t.Fatalf("got %s, want %s", v.KeyID(), test.pubKeyId)
 			}
 			err = v.Verify(test.pubKey, test.expectedAlgorithm)
 			if err != nil {
@@ -750,8 +750,8 @@ func Test_Verifying_HTTP_Messages_AppendixC(t *testing.T) {
 				t.Fatalf("error creating verifier: %s", err)
 			}
 
-			if "Test" != v.KeyId() {
-				t.Errorf("KeyId mismatch\nGot: %s\nWant: Test", v.KeyId())
+			if "Test" != v.KeyID() {
+				t.Errorf("KeyID mismatch\nGot: %s\nWant: Test", v.KeyID())
 			}
 
 			opts := SignatureOption{
@@ -808,8 +808,8 @@ func TestVerifyingEd25519(t *testing.T) {
 				t.Fatalf("error creating verifier: %s", err)
 			}
 
-			if "Test" != v.KeyId() {
-				t.Errorf("KeyId mismatch\nGot: %s\nWant: Test", v.KeyId())
+			if "Test" != v.KeyID() {
+				t.Errorf("KeyID mismatch\nGot: %s\nWant: Test", v.KeyID())
 			}
 			if err := v.Verify(testEd25519PublicKey, ED25519); err != nil {
 				t.Errorf("Verification failure: %s", err)

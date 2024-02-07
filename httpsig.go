@@ -1,9 +1,45 @@
-// Implements HTTP request and response signing and verification. Supports the
-// major MAC and asymmetric key signature algorithms. It has several safety
-// restrictions: One, none of the widely known non-cryptographically safe
+// httpsig
+// Copyright (C) GoToSocial Authors admin@gotosocial.org
+// Copyright (C) go-fed
+// SPDX-License-Identifier: BSD-3-Clause
+//
+// BSD 3-Clause License
+//
+// Copyright (c) 2018, go-fed
+// Copyright (c) 2024, GoToSocial Authors
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+// * Redistributions of source code must retain the above copyright notice, this
+// list of conditions and the following disclaimer.
+//
+// * Redistributions in binary form must reproduce the above copyright notice,
+// this list of conditions and the following disclaimer in the documentation
+// and/or other materials provided with the distribution.
+//
+// * Neither the name of the copyright holder nor the names of its
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+// Package httpsig implements HTTP request and response signing and verification.
+// Supports the major MAC and asymmetric key signature algorithms. It has several
+// safety restrictions: One, none of the widely known non-cryptographically safe
 // algorithms are permitted; Two, the RSA SHA256 algorithms must be available in
 // the binary (and it should, barring export restrictions); Finally, the library
-// assumes either the 'Authorizationn' or 'Signature' headers are to be set (but
+// assumes either the 'Authorization' or 'Signature' headers are to be set (but
 // not both).
 package httpsig
 
@@ -21,8 +57,8 @@ import (
 // and responses.
 type Algorithm string
 
+//nolint:revive // this is the most readable format for these constants
 const (
-	// MAC-based algoirthms.
 	HMAC_SHA224      Algorithm = hmacPrefix + "-" + sha224String
 	HMAC_SHA256      Algorithm = hmacPrefix + "-" + sha256String
 	HMAC_SHA384      Algorithm = hmacPrefix + "-" + sha384String
@@ -43,7 +79,6 @@ const (
 	BLAKE2B_384      Algorithm = blake2b_384String
 	BLAKE2B_512      Algorithm = blake2b_512String
 	// RSA-based algorithms.
-	RSA_SHA1   Algorithm = rsaPrefix + "-" + sha1String
 	RSA_SHA224 Algorithm = rsaPrefix + "-" + sha224String
 	// RSA_SHA256 is the default algorithm.
 	RSA_SHA256    Algorithm = rsaPrefix + "-" + sha256String
@@ -59,19 +94,6 @@ const (
 	// ED25519 algorithms
 	// can only be SHA512
 	ED25519 Algorithm = ed25519Prefix
-
-	// Just because you can glue things together, doesn't mean they will
-	// work. The following options are not supported.
-	rsa_SHA3_224    Algorithm = rsaPrefix + "-" + sha3_224String
-	rsa_SHA3_256    Algorithm = rsaPrefix + "-" + sha3_256String
-	rsa_SHA3_384    Algorithm = rsaPrefix + "-" + sha3_384String
-	rsa_SHA3_512    Algorithm = rsaPrefix + "-" + sha3_512String
-	rsa_SHA512_224  Algorithm = rsaPrefix + "-" + sha512_224String
-	rsa_SHA512_256  Algorithm = rsaPrefix + "-" + sha512_256String
-	rsa_BLAKE2S_256 Algorithm = rsaPrefix + "-" + blake2s_256String
-	rsa_BLAKE2B_256 Algorithm = rsaPrefix + "-" + blake2b_256String
-	rsa_BLAKE2B_384 Algorithm = rsaPrefix + "-" + blake2b_384String
-	rsa_BLAKE2B_512 Algorithm = rsaPrefix + "-" + blake2b_512String
 )
 
 // HTTP Signatures can be applied to different HTTP headers, depending on the
@@ -138,7 +160,7 @@ type Signer interface {
 	// and if the signer is created to also sign the "Digest" header, the
 	// HTTP Signature will then ensure both the Digest and body are not both
 	// modified to maliciously represent different content.
-	SignRequest(pKey crypto.PrivateKey, pubKeyId string, r *http.Request, body []byte) error
+	SignRequest(pKey crypto.PrivateKey, pubKeyID string, r *http.Request, body []byte) error
 	// SignResponse signs the response using a private key. The public key
 	// id is used by the HTTP client to identify which key to use to verify
 	// the signature.
@@ -154,7 +176,7 @@ type Signer interface {
 	// flight, and if the signer is created to also sign the "Digest"
 	// header, the HTTP Signature will then ensure both the Digest and body
 	// are not both modified to maliciously represent different content.
-	SignResponse(pKey crypto.PrivateKey, pubKeyId string, r http.ResponseWriter, body []byte) error
+	SignResponse(pKey crypto.PrivateKey, pubKeyID string, r http.ResponseWriter, body []byte) error
 }
 
 type SignerWithOptions interface {
@@ -175,7 +197,7 @@ type SignerWithOptions interface {
 	// and if the signer is created to also sign the "Digest" header, the
 	// HTTP Signature will then ensure both the Digest and body are not both
 	// modified to maliciously represent different content.
-	SignRequestWithOptions(pKey crypto.PrivateKey, pubKeyId string, r *http.Request, body []byte, opts SignatureOption) error
+	SignRequestWithOptions(pKey crypto.PrivateKey, pubKeyID string, r *http.Request, body []byte, opts SignatureOption) error
 	// SignResponseWithOptions signs the response using a private key. The public key
 	// id is used by the HTTP client to identify which key to use to verify
 	// the signature.
@@ -191,7 +213,7 @@ type SignerWithOptions interface {
 	// flight, and if the signer is created to also sign the "Digest"
 	// header, the HTTP Signature will then ensure both the Digest and body
 	// are not both modified to maliciously represent different content.
-	SignResponseWithOptions(pKey crypto.PrivateKey, pubKeyId string, r http.ResponseWriter, body []byte, opts SignatureOption) error
+	SignResponseWithOptions(pKey crypto.PrivateKey, pubKeyID string, r http.ResponseWriter, body []byte, opts SignatureOption) error
 }
 
 // NewSigner creates a new Signer with the provided algorithm preferences to
@@ -238,7 +260,7 @@ type SSHSigner interface {
 	// and if the signer is created to also sign the "Digest" header, the
 	// HTTP Signature will then ensure both the Digest and body are not both
 	// modified to maliciously represent different content.
-	SignRequest(pubKeyId string, r *http.Request, body []byte) error
+	SignRequest(pubKeyID string, r *http.Request, body []byte) error
 	// SignResponse signs the response using ssh.Signer. The public key
 	// id is used by the HTTP client to identify which key to use to verify
 	// the signature.
@@ -249,10 +271,11 @@ type SSHSigner interface {
 	// flight, and if the signer is created to also sign the "Digest"
 	// header, the HTTP Signature will then ensure both the Digest and body
 	// are not both modified to maliciously represent different content.
-	SignResponse(pubKeyId string, r http.ResponseWriter, body []byte) error
+	SignResponse(pubKeyID string, r http.ResponseWriter, body []byte) error
 }
 
-// NewwSSHSigner creates a new Signer using the specified ssh.Signer
+// NewSSHSigner creates a new Signer using the specified ssh.Signer.
+//
 // At the moment only ed25519 ssh keys are supported.
 // The headers specified will be included into the HTTP signatures.
 //
@@ -264,7 +287,7 @@ type SSHSigner interface {
 func NewSSHSigner(s ssh.Signer, dAlgo DigestAlgorithm, headers []string, scheme SignatureScheme, expiresIn int64) (SSHSigner, Algorithm, error) {
 	sshAlgo := getSSHAlgorithm(s.PublicKey().Type())
 	if sshAlgo == "" {
-		return nil, "", fmt.Errorf("key type: %s not supported yet.", s.PublicKey().Type())
+		return nil, "", fmt.Errorf("key type not supported: %s", s.PublicKey().Type())
 	}
 
 	signer, err := newSSHSigner(s, sshAlgo, dAlgo, headers, scheme, expiresIn)
@@ -276,13 +299,9 @@ func NewSSHSigner(s ssh.Signer, dAlgo DigestAlgorithm, headers []string, scheme 
 }
 
 func getSSHAlgorithm(pkType string) Algorithm {
-	switch {
-	case strings.HasPrefix(pkType, sshPrefix+"-"+ed25519Prefix):
+	if strings.HasPrefix(pkType, sshPrefix+"-"+ed25519Prefix) {
 		return ED25519
-	case strings.HasPrefix(pkType, sshPrefix+"-"+rsaPrefix):
-		return RSA_SHA1
 	}
-
 	return ""
 }
 
@@ -299,7 +318,7 @@ type Verifier interface {
 	//
 	// Note that the application is expected to determine the algorithm
 	// used based on metadata or out-of-band information for this key id.
-	KeyId() string
+	KeyID() string
 	// Verify accepts the public key specified by KeyId and returns an
 	// error if verification fails or if the signature is malformed. The
 	// algorithm must be the one used to create the signature in order to

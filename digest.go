@@ -1,7 +1,42 @@
+// httpsig
+// Copyright (C) GoToSocial Authors admin@gotosocial.org
+// Copyright (C) go-fed
+// SPDX-License-Identifier: BSD-3-Clause
+//
+// BSD 3-Clause License
+//
+// Copyright (c) 2018, go-fed
+// Copyright (c) 2024, GoToSocial Authors
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+// * Redistributions of source code must retain the above copyright notice, this
+// list of conditions and the following disclaimer.
+//
+// * Redistributions in binary form must reproduce the above copyright notice,
+// this list of conditions and the following disclaimer in the documentation
+// and/or other materials provided with the distribution.
+//
+// * Neither the name of the copyright holder nor the names of its
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 package httpsig
 
 import (
-	"bytes"
 	"crypto"
 	"encoding/base64"
 	"fmt"
@@ -14,7 +49,7 @@ type DigestAlgorithm string
 
 const (
 	DigestSha256 DigestAlgorithm = "SHA-256"
-	DigestSha512                 = "SHA-512"
+	DigestSha512 DigestAlgorithm = "SHA-512"
 )
 
 var digestToDef = map[DigestAlgorithm]crypto.Hash{
@@ -22,7 +57,7 @@ var digestToDef = map[DigestAlgorithm]crypto.Hash{
 	DigestSha512: crypto.SHA512,
 }
 
-// IsSupportedDigestAlgorithm returns true if hte string is supported by this
+// IsSupportedDigestAlgorithm returns true if the string is supported by this
 // library, is not a hash known to be weak, and is supported by the hardware.
 func IsSupportedDigestAlgorithm(algo string) bool {
 	uc := DigestAlgorithm(strings.ToUpper(algo))
@@ -33,11 +68,12 @@ func IsSupportedDigestAlgorithm(algo string) bool {
 func getHash(alg DigestAlgorithm) (h hash.Hash, toUse DigestAlgorithm, err error) {
 	upper := DigestAlgorithm(strings.ToUpper(string(alg)))
 	c, ok := digestToDef[upper]
-	if !ok {
+	switch {
+	case !ok:
 		err = fmt.Errorf("unknown or unsupported Digest algorithm: %s", alg)
-	} else if !c.Available() {
+	case !c.Available():
 		err = fmt.Errorf("unavailable Digest algorithm: %s", alg)
-	} else {
+	default:
 		h = c.New()
 		toUse = upper
 	}
@@ -67,7 +103,7 @@ func addDigest(r *http.Request, algo DigestAlgorithm, b []byte) (err error) {
 		fmt.Sprintf("%s%s%s",
 			a,
 			digestDelim,
-			base64.StdEncoding.EncodeToString(sum[:])))
+			base64.StdEncoding.EncodeToString(sum)))
 	return
 }
 
@@ -89,32 +125,6 @@ func addDigestResponse(r http.ResponseWriter, algo DigestAlgorithm, b []byte) (e
 		fmt.Sprintf("%s%s%s",
 			a,
 			digestDelim,
-			base64.StdEncoding.EncodeToString(sum[:])))
-	return
-}
-
-func verifyDigest(r *http.Request, body *bytes.Buffer) (err error) {
-	d := r.Header.Get(digestHeader)
-	if len(d) == 0 {
-		err = fmt.Errorf("cannot verify Digest: request has no Digest header")
-		return
-	}
-	elem := strings.SplitN(d, digestDelim, 2)
-	if len(elem) != 2 {
-		err = fmt.Errorf("cannot verify Digest: malformed Digest: %s", d)
-		return
-	}
-	var h hash.Hash
-	h, _, err = getHash(DigestAlgorithm(elem[0]))
-	if err != nil {
-		return
-	}
-	h.Write(body.Bytes())
-	sum := h.Sum(nil)
-	encSum := base64.StdEncoding.EncodeToString(sum[:])
-	if encSum != elem[1] {
-		err = fmt.Errorf("cannot verify Digest: header Digest does not match the digest of the request body")
-		return
-	}
+			base64.StdEncoding.EncodeToString(sum)))
 	return
 }
