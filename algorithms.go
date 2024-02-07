@@ -66,14 +66,10 @@ const (
 	sshPrefix         = "ssh"
 	ecdsaPrefix       = "ecdsa"
 	ed25519Prefix     = "ed25519"
-	md4String         = "md4"
-	md5String         = "md5"
-	sha1String        = "sha1"
 	sha224String      = "sha224"
 	sha256String      = "sha256"
 	sha384String      = "sha384"
 	sha512String      = "sha512"
-	md5sha1String     = "md5sha1"
 	ripemd160String   = "ripemd160"
 	sha3_224String    = "sha3-224"
 	sha3_256String    = "sha3-256"
@@ -103,13 +99,10 @@ var hashToDef = map[crypto.Hash]struct {
 	// http://www.iana.org/assignments/signature-algorithms
 	//
 	// Note that the forbidden hashes have an invalid 'new' function.
-	crypto.MD4:         {md4String, func(key []byte) (hash.Hash, error) { return nil, nil }},
-	crypto.MD5:         {md5String, func(key []byte) (hash.Hash, error) { return nil, nil }},
 	crypto.SHA224:      {sha224String, func(key []byte) (hash.Hash, error) { return sha256.New224(), nil }},
 	crypto.SHA256:      {sha256String, func(key []byte) (hash.Hash, error) { return sha256.New(), nil }},
 	crypto.SHA384:      {sha384String, func(key []byte) (hash.Hash, error) { return sha512.New384(), nil }},
 	crypto.SHA512:      {sha512String, func(key []byte) (hash.Hash, error) { return sha512.New(), nil }},
-	crypto.MD5SHA1:     {md5sha1String, func(key []byte) (hash.Hash, error) { return nil, nil }},
 	crypto.SHA3_224:    {sha3_224String, func(key []byte) (hash.Hash, error) { return sha3.New224(), nil }},
 	crypto.SHA3_256:    {sha3_256String, func(key []byte) (hash.Hash, error) { return sha3.New256(), nil }},
 	crypto.SHA3_384:    {sha3_384String, func(key []byte) (hash.Hash, error) { return sha3.New384(), nil }},

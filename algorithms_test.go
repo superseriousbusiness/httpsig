@@ -11,6 +11,22 @@ import (
 	"testing"
 )
 
+//nolint:revive // Underscores aid legibility
+const (
+	// Just because you can glue things together, doesn't mean they will
+	// work. The following options are not supported.
+	rsa_SHA3_224    Algorithm = rsaPrefix + "-" + sha3_224String
+	rsa_SHA3_256    Algorithm = rsaPrefix + "-" + sha3_256String
+	rsa_SHA3_384    Algorithm = rsaPrefix + "-" + sha3_384String
+	rsa_SHA3_512    Algorithm = rsaPrefix + "-" + sha3_512String
+	rsa_SHA512_224  Algorithm = rsaPrefix + "-" + sha512_224String
+	rsa_SHA512_256  Algorithm = rsaPrefix + "-" + sha512_256String
+	rsa_BLAKE2S_256 Algorithm = rsaPrefix + "-" + blake2s_256String
+	rsa_BLAKE2B_256 Algorithm = rsaPrefix + "-" + blake2b_256String
+	rsa_BLAKE2B_384 Algorithm = rsaPrefix + "-" + blake2b_384String
+	rsa_BLAKE2B_512 Algorithm = rsaPrefix + "-" + blake2b_512String
+)
+
 func readFullFromCrypto(b []byte) error {
 	n := len(b)
 	t := 0
@@ -25,22 +41,6 @@ func readFullFromCrypto(b []byte) error {
 }
 
 func TestIsAvailable(t *testing.T) {
-	//nolint:revive // Underscores aid legibility
-	const (
-		// Just because you can glue things together, doesn't mean they will
-		// work. The following options are not supported.
-		rsa_SHA3_224    Algorithm = rsaPrefix + "-" + sha3_224String
-		rsa_SHA3_256    Algorithm = rsaPrefix + "-" + sha3_256String
-		rsa_SHA3_384    Algorithm = rsaPrefix + "-" + sha3_384String
-		rsa_SHA3_512    Algorithm = rsaPrefix + "-" + sha3_512String
-		rsa_SHA512_224  Algorithm = rsaPrefix + "-" + sha512_224String
-		rsa_SHA512_256  Algorithm = rsaPrefix + "-" + sha512_256String
-		rsa_BLAKE2S_256 Algorithm = rsaPrefix + "-" + blake2s_256String
-		rsa_BLAKE2B_256 Algorithm = rsaPrefix + "-" + blake2b_256String
-		rsa_BLAKE2B_384 Algorithm = rsaPrefix + "-" + blake2b_384String
-		rsa_BLAKE2B_512 Algorithm = rsaPrefix + "-" + blake2b_512String
-	)
-
 	tests := []struct {
 		name        string
 		algo        string
@@ -48,23 +48,22 @@ func TestIsAvailable(t *testing.T) {
 		expectError bool
 	}{
 		{
-			name:        md4String,
-			algo:        md4String,
+			name:        "md4",
+			algo:        "md4",
 			expected:    false,
 			expectError: true,
 		},
 		{
-			name:        md5String,
-			algo:        md5String,
+			name:        "md5",
+			algo:        "md5",
 			expected:    false,
 			expectError: true,
 		},
 		{
-			// TODO: Disable once https://github.com/golang/go/issues/37278 is fixed
-			name:        sha1String,
-			algo:        sha1String,
-			expected:    true,
-			expectError: false,
+			name:        "sha1",
+			algo:        "sha1",
+			expected:    false,
+			expectError: true,
 		},
 		{
 			name:        sha224String,
@@ -91,16 +90,16 @@ func TestIsAvailable(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:        md5sha1String,
-			algo:        md5sha1String,
+			name:        "md5sha1",
+			algo:        "md5sha1",
 			expected:    false,
 			expectError: true,
 		},
 		{
 			name:        ripemd160String,
 			algo:        ripemd160String,
-			expected:    true,
-			expectError: false,
+			expected:    false,
+			expectError: true,
 		},
 		{
 			name:        sha3_224String,
@@ -301,9 +300,9 @@ func TestSignerFromString(t *testing.T) {
 			expectKind: crypto.SHA512,
 		},
 		{
-			name:       "RSA_RIPEMD160",
-			input:      RSA_RIPEMD160,
-			expectKind: crypto.RIPEMD160,
+			name:        "RSA_RIPEMD160",
+			input:       RSA_RIPEMD160,
+			expectError: true,
 		},
 		{
 			name:       "rsa_SHA3_224",
@@ -405,9 +404,9 @@ func TestMACerFromString(t *testing.T) {
 			expectKind: crypto.SHA512,
 		},
 		{
-			name:       "HMAC_RIPEMD160",
-			input:      HMAC_RIPEMD160,
-			expectKind: crypto.RIPEMD160,
+			name:        "HMAC_RIPEMD160",
+			input:       HMAC_RIPEMD160,
+			expectError: true,
 		},
 		{
 			name:       "HMAC_SHA3_224",
@@ -604,11 +603,6 @@ func TestSignerSigns(t *testing.T) {
 			inputCryptoHash: crypto.SHA512,
 		},
 		{
-			name:            "RSA_RIPEMD160",
-			input:           RSA_RIPEMD160,
-			inputCryptoHash: crypto.RIPEMD160,
-		},
-		{
 			name:                 "rsa_SHA3_224",
 			input:                rsa_SHA3_224,
 			inputCryptoHash:      crypto.SHA3_224,
@@ -754,11 +748,6 @@ func TestSignerVerifies(t *testing.T) {
 			input:           RSA_SHA512,
 			inputCryptoHash: crypto.SHA512,
 		},
-		{
-			name:            "RSA_RIPEMD160",
-			input:           RSA_RIPEMD160,
-			inputCryptoHash: crypto.RIPEMD160,
-		},
 	}
 	for _, test := range tests {
 		privKey, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -830,13 +819,6 @@ func TestMACerSigns(t *testing.T) {
 			name:            "HMAC_SHA512",
 			input:           HMAC_SHA512,
 			inputCryptoHash: crypto.SHA512,
-			isHMAC:          true,
-			keySize:         128,
-		},
-		{
-			name:            "HMAC_RIPEMD160",
-			input:           HMAC_RIPEMD160,
-			inputCryptoHash: crypto.RIPEMD160,
 			isHMAC:          true,
 			keySize:         128,
 		},
@@ -1029,13 +1011,6 @@ func TestMACerEquals(t *testing.T) {
 			name:            "HMAC_SHA512",
 			input:           HMAC_SHA512,
 			inputCryptoHash: crypto.SHA512,
-			isHMAC:          true,
-			keySize:         128,
-		},
-		{
-			name:            "HMAC_RIPEMD160",
-			input:           HMAC_RIPEMD160,
-			inputCryptoHash: crypto.RIPEMD160,
 			isHMAC:          true,
 			keySize:         128,
 		},
