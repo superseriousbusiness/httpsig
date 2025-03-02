@@ -1,3 +1,7 @@
+***This repository now lives at Codeberg: https://codeberg.org/superseriousbusiness/httpsig***
+
+***This repository is a read-only archive.***
+
 # httpsig
 
 **THIS IS A FORK OF https://github.com/go-fed/httpsig, WHICH WAS NO LONGER MAINTAINED. THANK YOU TO [cjslep](https://github.com/cjslep) FOR ALL YOUR HARD WORK!**
